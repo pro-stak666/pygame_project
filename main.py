@@ -165,8 +165,11 @@ def menu() -> None:
     is_menu = True
     cursor.image = load_image("cursor_menu.png")
 
-    but_start = Button(200, 200, 'start_but_0.png', 'start_but_1.png', start_game)
-    but_exit = Button(200, 270, 'exit_but_0.png', 'exit_but_1.png', lambda: quit())
+    but_start = Button(WIDTH // 2 - 125, 320, 'start_but_0.png', 'start_but_1.png', start_game)
+    but_settings = Button(WIDTH // 2 - 125, 390, 'settings_but_0.png', 'settings_but_1.png', lambda: print(1))
+    but_progress = Button(WIDTH // 2 - 125, 460, 'progress_but_0.png', 'progress_but_1.png', lambda: print(2))
+    but_titles = Button(WIDTH // 2 - 125, 530, 'titles_but_0.png', 'titles_but_1.png', lambda: print(3))
+    but_exit = Button(WIDTH // 2 - 125, 600, 'exit_but_0.png', 'exit_but_1.png', lambda: quit())
 
     while is_menu:
         for event in pg.event.get():
@@ -190,6 +193,9 @@ def menu() -> None:
         # отрисовка фона
 
         but_start.draw()
+        but_settings.draw()
+        but_progress.draw()
+        but_titles.draw()
         but_exit.draw()
 
         all_sprites.draw(screen)
