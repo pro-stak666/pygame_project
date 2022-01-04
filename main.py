@@ -3,6 +3,30 @@ from os import path
 from random import random, choice, randrange
 
 
+class Button(pg.sprite.Sprite):
+    def __init__(self, x, y, active_image, inactive_image, action=None):
+        super(Button, self).__init__()
+        self.images = [load_image(inactive_image), load_image(active_image)]
+        self.image = self.images[0]
+        self.rect = self.image.get_rect()
+        self.x, self.y = x, y
+        self.rect.x, self.rect.y = x, y
+        self.action = action
+
+    def draw(self):
+        mouse = pg.mouse.get_pos()
+        click = pg.mouse.get_pressed()
+        if self.x < mouse[0] < self.x + self.rect.width and self.y < mouse[1] < self.y + self.rect.height:
+            screen.blit(self.images[0], (self.x, self.y))
+
+            if click[0] == 1 and self.action is not None:
+                pass  # звук нажатия
+                self.action()
+                clock.tick(10)
+        else:
+            screen.blit(self.images[1], (self.x, self.y))
+
+
 class Asteroid(pg.sprite.Sprite):
     def __init__(self):
         super(Asteroid, self).__init__(asteroids)
@@ -140,6 +164,10 @@ def menu() -> None:
     global x_bkgd, rel_x_bkgd
     is_menu = True
     cursor.image = load_image("cursor_menu.png")
+
+    but_start = Button(200, 200, 'start_but_0.png', 'start_but_1.png', start_game)
+    but_exit = Button(200, 270, 'exit_but_0.png', 'exit_but_1.png', lambda: quit())
+
     while is_menu:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -150,13 +178,6 @@ def menu() -> None:
                 cursor.image.set_alpha(255)
             else:
                 cursor.image.set_alpha(0)
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_RETURN:
-                    asteroids.empty()
-                    cursor.image = load_image("cursor.png")
-                    start_game()
-                if event.key == pg.K_ESCAPE:
-                    quit()
 
         screen.fill('black')
 
@@ -168,8 +189,8 @@ def menu() -> None:
         x_bkgd -= 0
         # отрисовка фона
 
-        print_text("TO START PRESS ENTER", 750, 400)
-        print_text("TO EXIT PRESS ESCAPE", 750, 500)
+        but_start.draw()
+        but_exit.draw()
 
         all_sprites.draw(screen)
         pg.display.flip()
@@ -233,6 +254,9 @@ def start_game() -> None:
     PLAYER.rect.x = 100
     PLAYER.rect.y = HEIGHT // 2 - PLAYER.rect.height // 2
 
+    asteroids.empty()
+    cursor.image = load_image("cursor.png")
+
     SCORE = 0
 
     running = True
@@ -265,7 +289,7 @@ def start_game() -> None:
         screen.blit(background, (rel_x_bkgd - background.get_rect().width, 0))
         if rel_x_bkgd < WIDTH:
             screen.blit(background, (rel_x_bkgd, 0))
-        x_bkgd -= 1
+        x_bkgd -= 1.15
         # отрисовка фона
 
         for i in asteroids:
