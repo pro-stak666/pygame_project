@@ -189,9 +189,9 @@ def menu() -> None:
     cursor.image = load_image("cursor_menu.png")
 
     but_start = Button(WIDTH // 2 - 125, 320, 'start_but_0.png', 'start_but_1.png', start_game)
-    but_settings = Button(WIDTH // 2 - 125, 390, 'settings_but_0.png', 'settings_but_1.png', lambda: print(1))
-    but_progress = Button(WIDTH // 2 - 125, 460, 'progress_but_0.png', 'progress_but_1.png', lambda: print(2))
-    but_titles = Button(WIDTH // 2 - 125, 530, 'titles_but_0.png', 'titles_but_1.png', lambda: print(3))
+    but_settings = Button(WIDTH // 2 - 125, 390, 'settings_but_0.png', 'settings_but_1.png', show_settings)
+    but_progress = Button(WIDTH // 2 - 125, 460, 'progress_but_0.png', 'progress_but_1.png', show_progress())
+    but_titles = Button(WIDTH // 2 - 125, 530, 'titles_but_0.png', 'titles_but_1.png', show_titles)
     but_exit = Button(WIDTH // 2 - 125, 600, 'exit_but_0.png', 'exit_but_1.png', exit_app)
 
     while is_menu:
@@ -331,6 +331,18 @@ def start_game() -> None:
 
         pg.display.flip()
         clock.tick(fps)
+
+
+def show_titles() -> None:  # game designer, producer, artist, programmer, developer
+    pass
+
+
+def show_settings() -> None:
+    pass
+
+
+def show_progress() -> None:
+    pass
 
 
 if __name__ == "__main__":
