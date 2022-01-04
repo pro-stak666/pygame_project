@@ -1,6 +1,24 @@
 import pygame as pg
 from os import path
 from random import random, choice, randrange
+import csv
+
+
+class DataManager:
+    def __init__(self):
+        if not path.isfile("data/data.csv"):
+            with open('data/data.csv', 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f, delimiter=';')
+                writer.writerow(['max_score', 'volume', 'difficult', 'full_screen', '1_achievement', '2_achievement',
+                                 '3_achievement'])
+                writer.writerow([0, 1, 0, 1, 0, 0, 0])
+        self.data = csv.DictReader(open('data/data.csv', encoding='utf-8'), delimiter=';').__next__()
+
+    def save(self):
+        with open('data/data.csv', 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=list(self.data.keys()), delimiter=';')
+            writer.writeheader()
+            writer.writerow(self.data)
 
 
 class Button(pg.sprite.Sprite):
@@ -51,10 +69,10 @@ class Asteroid(pg.sprite.Sprite):
 
         self.mask = pg.mask.from_surface(self.image)
 
-    def update(self, *args):
-        if args and args[0].type == pg.MOUSEBUTTONDOWN and \
-                self.rect.collidepoint(args[0].pos):
-            self.destroy()
+    def update(self, args):
+        for i in args:
+            if i.type == pg.MOUSEBUTTONDOWN and self.rect.collidepoint(i.pos):
+                self.destroy()
 
         if self.rect.x < -100:
             self.kill()
@@ -132,7 +150,7 @@ class Ship(pg.sprite.Sprite):
                     break
 
     def die(self):
-        score_manipulation(save=True)
+        MANAGER.data['max_score'] = int(SCORE) if int(MANAGER.data['max_score']) < int(SCORE) else MANAGER.data['max_score']
         menu()
 
 
@@ -160,6 +178,11 @@ def get_probability_asteroid() -> int:
         return choice([1, 2, 3, 4])
 
 
+def exit_app():
+    MANAGER.save()
+    quit()
+
+
 def menu() -> None:
     global x_bkgd, rel_x_bkgd
     is_menu = True
@@ -169,11 +192,12 @@ def menu() -> None:
     but_settings = Button(WIDTH // 2 - 125, 390, 'settings_but_0.png', 'settings_but_1.png', lambda: print(1))
     but_progress = Button(WIDTH // 2 - 125, 460, 'progress_but_0.png', 'progress_but_1.png', lambda: print(2))
     but_titles = Button(WIDTH // 2 - 125, 530, 'titles_but_0.png', 'titles_but_1.png', lambda: print(3))
-    but_exit = Button(WIDTH // 2 - 125, 600, 'exit_but_0.png', 'exit_but_1.png', lambda: quit())
+    but_exit = Button(WIDTH // 2 - 125, 600, 'exit_but_0.png', 'exit_but_1.png', exit_app)
 
     while is_menu:
         for event in pg.event.get():
             if event.type == pg.QUIT:
+                MANAGER.save()
                 quit()
             if pg.mouse.get_focused():
                 pg.mouse.set_visible(False)
@@ -222,7 +246,6 @@ def pause() -> None:
                     cursor.image = load_image("cursor.png")
                     is_pause = False
                 if event.key == pg.K_ESCAPE:
-                    score_manipulation(save=True)
                     menu()
 
         screen.fill('black')
@@ -268,7 +291,8 @@ def start_game() -> None:
     running = True
 
     while running:
-        for event in pg.event.get():
+        events = pg.event.get()
+        for event in events:
             if event.type == pg.QUIT:
                 running = False
             if event.type == SPAWN_ASTEROIDS:
@@ -279,14 +303,11 @@ def start_game() -> None:
                 cursor.image.set_alpha(255)
             else:
                 cursor.image.set_alpha(0)
-            if event.type == pg.MOUSEBUTTONDOWN:
-                for i in asteroids:
-                    i.update(event)
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     pause()
 
-        PLAYER.update(pg.event.get())
+        PLAYER.update(events)
 
         screen.fill('black')
 
@@ -299,7 +320,7 @@ def start_game() -> None:
         # отрисовка фона
 
         for i in asteroids:
-            i.update()
+            i.update(events)
 
         asteroids.draw(screen)
         player.draw(screen)
@@ -312,29 +333,13 @@ def start_game() -> None:
         clock.tick(fps)
 
 
-def score_manipulation(get: bool = None, save: bool = None):
-    if not path.isfile("data/score.txt"):
-        with open('data/score.txt', 'w') as f:
-            f.write("max_score = 0")
-    if get:
-        with open("data/score.txt", 'r', encoding="utf-8") as f:
-            data = f.read()
-            print(data[12:])
-    if save:
-        with open("data/score.txt", 'r+', encoding="utf-8") as f:
-            if int(f.read()[12:]) < SCORE:
-                f.seek(0)
-                f.truncate()
-                f.write(str(f"max_score = {int(SCORE)}"))
-
-
 if __name__ == "__main__":
     pg.init()
     size = WIDTH, HEIGHT = 1920, 1080
     screen = pg.display.set_mode(size)
     fps = 100
     clock = pg.time.Clock()
-    pg.display.set_caption("mdaaa...")
+    pg.display.set_caption("plads")
 
     background = pg.image.load("data/space.png").convert()
     x_bkgd = 0
@@ -353,5 +358,7 @@ if __name__ == "__main__":
     PLAYER = Ship()
 
     SCORE = 0
+
+    MANAGER = DataManager()
 
     menu()
