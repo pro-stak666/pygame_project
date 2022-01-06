@@ -203,12 +203,12 @@ def menu() -> None:
     global x_bkgd, rel_x_bkgd
     is_menu = True
     cursor.image = load_image("cursor_menu.png")
-
-    but_start = Button(WIDTH // 2 - 125, 320, 'start_but_0.png', 'start_but_1.png', start_game)
-    but_settings = Button(WIDTH // 2 - 125, 390, 'settings_but_0.png', 'settings_but_1.png', show_settings)
-    but_progress = Button(WIDTH // 2 - 125, 460, 'progress_but_0.png', 'progress_but_1.png', show_progress)
-    but_titles = Button(WIDTH // 2 - 125, 530, 'titles_but_0.png', 'titles_but_1.png', show_titles)
-    but_exit = Button(WIDTH // 2 - 125, 600, 'exit_but_0.png', 'exit_but_1.png', exit_app)
+    h = (HEIGHT + 250) // 5
+    but_start = Button(WIDTH // 2 - 125, h, 'start_but_0.png', 'start_but_1.png', start_game)
+    but_settings = Button(WIDTH // 2 - 125, h + 70, 'settings_but_0.png', 'settings_but_1.png', show_settings)
+    but_progress = Button(WIDTH // 2 - 125, h + 140, 'progress_but_0.png', 'progress_but_1.png', show_progress)
+    but_titles = Button(WIDTH // 2 - 125, h + 210, 'titles_but_0.png', 'titles_but_1.png', show_titles)
+    but_exit = Button(WIDTH // 2 - 125, h + 280, 'exit_but_0.png', 'exit_but_1.png', exit_app)
 
     while is_menu:
         for event in pg.event.get():
@@ -346,7 +346,7 @@ def start_game() -> None:
         all_sprites.draw(screen)
 
         SCORE += 0.01
-        print_text(f"SCORE: {int(SCORE)}", 1550, 10)
+        print_text(f"SCORE: {int(SCORE)}", WIDTH - 300, 10)
 
         pg.display.flip()
         clock.tick(fps)
@@ -379,7 +379,7 @@ def show_titles() -> None:  # game designer, producer, artist, programmer, devel
         x_bkgd -= 0
         # отрисовка фона
 
-        print_text("COMPANY - RepeekGames", 650, 100, font_size=50)
+        print_text("COMPANY - RepeekGames", 200, 100, font_size=50)
         print_text("GAME DESIGNER - Mineev Kirill", 200, 250, font_size=50)
         print_text("PRODUCER - Mineev Kirill", 200, 350, font_size=50)
         print_text("PAINTER - Mineev Kirill", 200, 450, font_size=50)
@@ -475,6 +475,10 @@ def show_progress() -> None:
     is_progress = True
 
     but_back = Button(WIDTH - 300, HEIGHT - 100, "back_but_0.png", "back_but_1.png", menu)
+    trophy_img = load_image('trophy.png')
+    ship_img = load_image('ship_down_3.png')
+    asteroid_img = pg.transform.scale(load_image('asteroid3.png'), (128, 128))
+    clock_img = load_image('clock.png')
 
     MANAGER.save()
 
@@ -499,22 +503,28 @@ def show_progress() -> None:
         x_bkgd -= 0
         # отрисовка фона
 
-        print_text(f"BEST", 100, 100, font_size=70)
-        print_text(f"SCORE", 100, 170, font_size=70)
-        print_text(f"{MANAGER.data['max_score']}", 400, 100, font_size=140)
+        print_text(f"BEST", 150, 100, font_size=70)
+        print_text(f"SCORE", 150, 170, font_size=70)
+        print_text(f"{MANAGER.data['max_score']}", 650, 100, font_size=140)
+        screen.blit(trophy_img, (38, 80))
 
-        print_text(f"DISTANCE", 100, 300, font_size=70)
-        print_text(f"TRAVELED", 100, 370, font_size=70)
-        print_text(f"{round(MANAGER.data['1_achievement'] / 1000, 2)}", 550, 300, font_size=140)
+        print_text(f"DISTANCE", 150, 300, font_size=70)
+        print_text(f"TRAVELED", 150, 370, font_size=70)
+        print_text(f"{round(MANAGER.data['1_achievement'] / 1000, 2)}", 650, 300, font_size=140)
+        screen.blit(ship_img, (11, 350))
 
-        print_text(f"ASTEROIDS", 100, 500, font_size=70)
-        print_text(f"DESTROYED", 100, 570, font_size=70)
-        print_text(f"{MANAGER.data['2_achievement']}", 600, 500, font_size=140)
+        print_text(f"ASTEROIDS", 150, 500, font_size=70)
+        print_text(f"DESTROYED", 150, 570, font_size=70)
+        print_text(f"{MANAGER.data['2_achievement']}", 650, 500, font_size=140)
+        screen.blit(asteroid_img, (11, 510))
 
-        print_text(f"TOTAL", 100, 700, font_size=70)
-        print_text(f"FLIGHT TIME", 100, 770, font_size=70)
+        print_text(f"TOTAL", 150, 700, font_size=70)
+        print_text(f"FLIGHT TIME", 150, 770, font_size=70)
         t = int(MANAGER.data['3_achievement'].total_seconds())
-        print_text(f"{dt.datetime(2022, 1, 1, hour=t//3600, minute=t//60, second=t-t//3600*3600-t//60*60).strftime('%Hh:%Mm:%Ss')}", 600, 700, font_size=140)
+        print_text(
+            f"{dt.datetime(2022, 1, 1, hour=t // 3600, minute=t // 60, second=t - t // 3600 * 3600 - t // 60 * 60).strftime('%H:%M:%S')}",
+            650, 700, font_size=140)
+        screen.blit(clock_img, (11, 710))
 
         but_back.draw()
 
@@ -526,7 +536,7 @@ def show_progress() -> None:
 
 if __name__ == "__main__":
     pg.init()
-    size = WIDTH, HEIGHT = 1920, 1080
+    size = WIDTH, HEIGHT = 1600, 900
     screen = pg.display.set_mode(size)
     fps = 100
     clock = pg.time.Clock()
