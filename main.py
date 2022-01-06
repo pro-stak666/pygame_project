@@ -379,11 +379,12 @@ def show_titles() -> None:  # game designer, producer, artist, programmer, devel
         x_bkgd -= 0
         # отрисовка фона
 
-        print_text("GAME DESIGNER - Mineev Kirill", 200, 100, font_size=50)
-        print_text("PRODUCER - Mineev Kirill", 200, 200, font_size=50)
-        print_text("PAINTER - Mineev Kirill", 200, 300, font_size=50)
-        print_text("PROGRAMMER - Mineev Kirill", 200, 400, font_size=50)
-        print_text("DEVELOPER - Mineev Kirill", 200, 500, font_size=50)
+        print_text("COMPANY - RepeekGames", 650, 100, font_size=50)
+        print_text("GAME DESIGNER - Mineev Kirill", 200, 250, font_size=50)
+        print_text("PRODUCER - Mineev Kirill", 200, 350, font_size=50)
+        print_text("PAINTER - Mineev Kirill", 200, 450, font_size=50)
+        print_text("PROGRAMMER - Mineev Kirill", 200, 550, font_size=50)
+        print_text("DEVELOPER - Mineev Kirill", 200, 650, font_size=50)
 
         but_back.draw()
 
@@ -394,7 +395,79 @@ def show_titles() -> None:  # game designer, producer, artist, programmer, devel
 
 
 def show_settings() -> None:
-    pass
+    global x_bkgd, rel_x_bkgd
+    is_settings = True
+
+    but_back = Button(WIDTH - 300, HEIGHT - 100, "back_but_0.png", "back_but_1.png", menu)
+    but_easy = Button(900, HEIGHT // 6 + 330, "easy_but_0.png", "easy_but_1.png")
+    but_medium = Button(1120, HEIGHT // 6 + 330, "medium_but_0.png", "medium_but_1.png")
+    but_hard = Button(1340, HEIGHT // 6 + 330, "hard_but_0.png", "hard_but_1.png")
+    but_1920x1080 = Button(1100, HEIGHT // 6 + 530, "1920x1080_but_0.png", "1920x1080_but_1.png")
+    but_1600x900 = Button(800, HEIGHT // 6 + 530, "1600x900_but_0.png", "1600x900_but_1.png")
+
+    while is_settings:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                quit()
+            if pg.mouse.get_focused():
+                pg.mouse.set_visible(False)
+                cursor.rect.x, cursor.rect.y = pg.mouse.get_pos()
+                cursor.image.set_alpha(255)
+            else:
+                cursor.image.set_alpha(0)
+
+        screen.fill('black')
+
+        # отрисовка фона
+        rel_x_bkgd = x_bkgd % background.get_rect().width
+        screen.blit(background, (rel_x_bkgd - background.get_rect().width, 0))
+        if rel_x_bkgd < WIDTH:
+            screen.blit(background, (rel_x_bkgd, 0))
+        x_bkgd -= 0
+        # отрисовка фона
+
+        but_back.draw()
+
+        volume = 1  # MANAGER.data['volume']
+        but_offset = (WIDTH - 950 - 630) // 2
+        but_easy.x = 800
+        but_medium.x = 800 + 210 + but_offset
+        but_hard.x = 800 + 210 + 210 + but_offset + but_offset
+
+        but_1920x1080.x = 1050 + WIDTH - 950 - 500
+
+        print_text("MUSIC", 100, HEIGHT // 6 - 70, font_size=80)
+        print_text('+', WIDTH - 150, HEIGHT // 6 - 125, font_size=150, font_color='green')
+        print_text('-', 800, HEIGHT // 6 - 125, font_size=150, font_color='red')
+        x, y, w, h = 900, HEIGHT // 6, (WIDTH - 1000) // 10 - 20, 10
+        for i in range(round(volume * 10)):
+            pg.draw.rect(screen, 'green', (x, y, w, h))
+            x += w + 10
+            h += 10
+            y -= 10
+
+        print_text("SOUNDS", 100, HEIGHT // 6 + 130, font_size=80)
+        print_text('+', WIDTH - 150, HEIGHT // 6 + 75, font_size=150, font_color='green')
+        print_text('-', 800, HEIGHT // 6 + 75, font_size=150, font_color='red')
+        x, y, w, h = 900, HEIGHT // 6 + 200, (WIDTH - 1000) // 10 - 20, 10
+        for i in range(round(volume * 10)):
+            pg.draw.rect(screen, 'green', (x, y, w, h))
+            x += w + 10
+            h += 10
+            y -= 10
+
+        print_text("DIFFICULT", 100, HEIGHT // 6 + 330, font_size=80)
+        but_easy.draw()
+        but_medium.draw()
+        but_hard.draw()
+
+        print_text("SCREEN SIZE", 100, HEIGHT // 6 + 530, font_size=80)
+        but_1600x900.draw()
+        but_1920x1080.draw()
+
+        all_sprites.draw(screen)
+        pg.display.flip()
+        clock.tick(fps)
 
 
 def show_progress() -> None:
