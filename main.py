@@ -1,5 +1,5 @@
 import pygame as pg
-from os import path
+from os import path, environ
 from random import random, choice, randrange
 import csv
 import datetime as dt
@@ -63,7 +63,7 @@ class Asteroid(pg.sprite.Sprite):
         self.rect_original.x = WIDTH + 100
         self.rect_original.y = randrange(HEIGHT)
 
-        self.vx = randrange(-5, -1)
+        self.vx = randrange(-8, -2)
         self.vy = 0 if 0 < random() < 0.91 else choice([1, -1])
 
         if self.vy == 1:
@@ -243,10 +243,23 @@ def menu() -> None:
         clock.tick(fps)
 
 
+def continue_game():
+    global is_pause
+    is_pause = False
+    cursor.image = load_image("cursor.png")
+
+
 def pause() -> None:
-    global x_bkgd, rel_x_bkgd
+    global x_bkgd, rel_x_bkgd, is_pause
     is_pause = True
     cursor.image = load_image("cursor_menu.png")
+    pause_img = load_image('pause_screen.png')
+
+    but_menu = Button(WIDTH // 2 - 300, HEIGHT - 300, "menu_but_0.png", "menu_but_1.png", menu)
+    but_continue = Button(WIDTH // 2 + 50, HEIGHT - 300, "continue_but_0.png", "continue_but_1.png", continue_game)
+
+    high_score = MANAGER.data['max_score']
+
     while is_pause:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -274,14 +287,21 @@ def pause() -> None:
         x_bkgd -= 0
         # отрисовка фона
 
-        print_text("TO CONTINUE PRESS ENTER", 750, 400)
-        print_text("TO EXIT PRESS ESCAPE", 750, 500)
-
-        all_sprites.draw(screen)
         asteroids.draw(screen)
         player.draw(screen)
 
-        print_text(f"SCORE: {int(SCORE)}", 1550, 10)
+        screen.blit(pause_img, ((WIDTH - 800) // 2, (HEIGHT - 700) // 2))
+
+        but_menu.draw()
+        but_continue.draw()
+
+        if int(SCORE) > high_score:
+            high_score = int(SCORE)
+
+        print_text(f'{int(SCORE)}', (WIDTH - 800) // 2 + 460, (HEIGHT - 700) // 2 + 165, font_size=80, font=FONTS[5])
+        print_text(f'{high_score}', (WIDTH - 800) // 2 + 460, (HEIGHT - 700) // 2 + 270, font_size=70, font=FONTS[5])
+
+        all_sprites.draw(screen)
 
         pg.display.flip()
         clock.tick(fps)
@@ -304,6 +324,9 @@ def start_game() -> None:
     cursor.image = load_image("cursor.png")
 
     SCORE = 0
+    diff = int(MANAGER.data['difficult'])
+    score_pluser = float(f'0.0{diff}')
+    pg.time.set_timer(SPAWN_ASTEROIDS, 900//diff + 100*diff)
 
     running = True
 
@@ -313,7 +336,8 @@ def start_game() -> None:
             if event.type == pg.QUIT:
                 running = False
             if event.type == SPAWN_ASTEROIDS:
-                Asteroid()
+                for _ in range(diff):
+                    Asteroid()
             if event.type == TIME_COUNT:
                 ALL_TIME += one_second
             if pg.mouse.get_focused():
@@ -345,8 +369,8 @@ def start_game() -> None:
         player.draw(screen)
         all_sprites.draw(screen)
 
-        SCORE += 0.01
-        print_text(f"SCORE: {int(SCORE)}", WIDTH - 300, 10)
+        SCORE += score_pluser
+        print_text(f"SCORE: {int(SCORE)}", WIDTH - 300, 10, font=FONTS[1])
 
         pg.display.flip()
         clock.tick(fps)
@@ -368,6 +392,9 @@ def show_titles() -> None:  # game designer, producer, artist, programmer, devel
                 cursor.image.set_alpha(255)
             else:
                 cursor.image.set_alpha(0)
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    menu()
 
         screen.fill('black')
 
@@ -379,12 +406,12 @@ def show_titles() -> None:  # game designer, producer, artist, programmer, devel
         x_bkgd -= 0
         # отрисовка фона
 
-        print_text("COMPANY - RepeekGames", 200, 100, font_size=50)
-        print_text("GAME DESIGNER - Mineev Kirill", 200, 250, font_size=50)
-        print_text("PRODUCER - Mineev Kirill", 200, 350, font_size=50)
-        print_text("PAINTER - Mineev Kirill", 200, 450, font_size=50)
-        print_text("PROGRAMMER - Mineev Kirill", 200, 550, font_size=50)
-        print_text("DEVELOPER - Mineev Kirill", 200, 650, font_size=50)
+        print_text("COMPANY - RepeekGames", 200, 100, font_size=50, font=FONTS[1])
+        print_text("GAME DESIGNER - Mineev Kirill", 200, 250, font_size=50, font=FONTS[1])
+        print_text("PRODUCER - Mineev Kirill", 200, 350, font_size=50, font=FONTS[1])
+        print_text("PAINTER - Mineev Kirill", 200, 450, font_size=50, font=FONTS[1])
+        print_text("PROGRAMMER - Mineev Kirill", 200, 550, font_size=50, font=FONTS[1])
+        print_text("DEVELOPER - Mineev Kirill", 200, 650, font_size=50, font=FONTS[1])
 
         but_back.draw()
 
@@ -399,11 +426,13 @@ def show_settings() -> None:
     is_settings = True
 
     but_back = Button(WIDTH - 300, HEIGHT - 100, "back_but_0.png", "back_but_1.png", menu)
-    but_easy = Button(900, HEIGHT // 6 + 330, "easy_but_0.png", "easy_but_1.png")
-    but_medium = Button(1120, HEIGHT // 6 + 330, "medium_but_0.png", "medium_but_1.png")
-    but_hard = Button(1340, HEIGHT // 6 + 330, "hard_but_0.png", "hard_but_1.png")
-    but_1920x1080 = Button(1100, HEIGHT // 6 + 530, "1920x1080_but_0.png", "1920x1080_but_1.png")
-    but_1600x900 = Button(800, HEIGHT // 6 + 530, "1600x900_but_0.png", "1600x900_but_1.png")
+    but_easy = Button(900, HEIGHT // 6 + 330, "easy_but_0.png", "easy_but_1.png", lambda: set_difficult(1))
+    but_medium = Button(1120, HEIGHT // 6 + 330, "medium_but_0.png", "medium_but_1.png", lambda: set_difficult(2))
+    but_hard = Button(1340, HEIGHT // 6 + 330, "hard_but_0.png", "hard_but_1.png", lambda: set_difficult(3))
+    but_1920x1080 = Button(1100, HEIGHT // 6 + 530, "1920x1080_but_0.png", "1920x1080_but_1.png",
+                           lambda: change_screen_size(1920, 1080))
+    but_1600x900 = Button(800, HEIGHT // 6 + 530, "1600x900_but_0.png", "1600x900_but_1.png",
+                          lambda: change_screen_size(1600, 900))
 
     while is_settings:
         for event in pg.event.get():
@@ -415,6 +444,9 @@ def show_settings() -> None:
                 cursor.image.set_alpha(255)
             else:
                 cursor.image.set_alpha(0)
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    menu()
 
         screen.fill('black')
 
@@ -429,6 +461,7 @@ def show_settings() -> None:
         but_back.draw()
 
         volume = 1  # MANAGER.data['volume']
+        but_back.x, but_back.y = WIDTH - 300, HEIGHT - 100
         but_offset = (WIDTH - 950 - 630) // 2
         but_easy.x = 800
         but_medium.x = 800 + 210 + but_offset
@@ -436,7 +469,7 @@ def show_settings() -> None:
 
         but_1920x1080.x = 1050 + WIDTH - 950 - 500
 
-        print_text("MUSIC", 100, HEIGHT // 6 - 70, font_size=80)
+        print_text("MUSIC", 100, HEIGHT // 6 - 70, font_size=100, font=FONTS[5])
         print_text('+', WIDTH - 150, HEIGHT // 6 - 125, font_size=150, font_color='green')
         print_text('-', 800, HEIGHT // 6 - 125, font_size=150, font_color='red')
         x, y, w, h = 900, HEIGHT // 6, (WIDTH - 1000) // 10 - 20, 10
@@ -446,7 +479,7 @@ def show_settings() -> None:
             h += 10
             y -= 10
 
-        print_text("SOUNDS", 100, HEIGHT // 6 + 130, font_size=80)
+        print_text("SOUNDS", 100, HEIGHT // 6 + 130, font_size=100, font=FONTS[5])
         print_text('+', WIDTH - 150, HEIGHT // 6 + 75, font_size=150, font_color='green')
         print_text('-', 800, HEIGHT // 6 + 75, font_size=150, font_color='red')
         x, y, w, h = 900, HEIGHT // 6 + 200, (WIDTH - 1000) // 10 - 20, 10
@@ -456,12 +489,12 @@ def show_settings() -> None:
             h += 10
             y -= 10
 
-        print_text("DIFFICULT", 100, HEIGHT // 6 + 330, font_size=80)
+        print_text("DIFFICULT", 100, HEIGHT // 6 + 330, font_size=100, font=FONTS[5])
         but_easy.draw()
         but_medium.draw()
         but_hard.draw()
 
-        print_text("SCREEN SIZE", 100, HEIGHT // 6 + 530, font_size=80)
+        print_text("SCREEN SIZE", 100, HEIGHT // 6 + 530, font_size=100, font=FONTS[5])
         but_1600x900.draw()
         but_1920x1080.draw()
 
@@ -492,6 +525,9 @@ def show_progress() -> None:
                 cursor.image.set_alpha(255)
             else:
                 cursor.image.set_alpha(0)
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    menu()
 
         screen.fill('black')
 
@@ -534,10 +570,29 @@ def show_progress() -> None:
         clock.tick(fps)
 
 
+def change_screen_size(w: int, h: int) -> None:
+    global WIDTH, HEIGHT, screen
+    if WIDTH != w:
+        WIDTH, HEIGHT = w, h
+        if w == 1920:
+            MANAGER.data['full_screen'] = 1
+            screen = pg.display.set_mode((WIDTH, HEIGHT), pg.FULLSCREEN)
+        else:
+            MANAGER.data['full_screen'] = 0
+            environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (100, 100)
+            screen = pg.display.set_mode((WIDTH, HEIGHT))
+
+
+def set_difficult(n: int) -> None:
+    MANAGER.data['difficult'] = n
+
+
 if __name__ == "__main__":
+    environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (100, 100)  # это чтобы окно появлялось в на экране в определенных корд.
     pg.init()
-    size = WIDTH, HEIGHT = 1600, 900
-    screen = pg.display.set_mode(size)
+    MANAGER = DataManager()
+    size = WIDTH, HEIGHT = (1920, 1080) if MANAGER.data['full_screen'] else (1600, 900)
+    screen = pg.display.set_mode(size, pg.FULLSCREEN) if WIDTH == 1920 else pg.display.set_mode(size)
     fps = 100
     clock = pg.time.Clock()
     pg.display.set_caption("plads")
@@ -565,6 +620,9 @@ if __name__ == "__main__":
     ALL_TIME = dt.timedelta()
     one_second = dt.timedelta(seconds=1)
 
-    MANAGER = DataManager()
+    is_pause = False
+
+    FONTS = ['data/Comfortaa.ttf', 'data/Changa.ttf', 'data/Nunito.ttf', 'data/Orbitron.ttf', 'data/Signika.ttf',
+             'data/StickNoBills.ttf']
 
     menu()
