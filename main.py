@@ -326,7 +326,7 @@ def start_game() -> None:
     SCORE = 0
     diff = int(MANAGER.data['difficult'])
     score_pluser = float(f'0.0{diff}')
-    pg.time.set_timer(SPAWN_ASTEROIDS, 900//diff + 100*diff)
+    pg.time.set_timer(SPAWN_ASTEROIDS, 900 // diff + 100 * diff)
 
     running = True
 
@@ -424,15 +424,20 @@ def show_titles() -> None:  # game designer, producer, artist, programmer, devel
 def show_settings() -> None:
     global x_bkgd, rel_x_bkgd
     is_settings = True
-
+    but_offset = (WIDTH - 950 - 630) // 2
     but_back = Button(WIDTH - 300, HEIGHT - 100, "back_but_0.png", "back_but_1.png", menu)
-    but_easy = Button(900, HEIGHT // 6 + 330, "easy_but_0.png", "easy_but_1.png", lambda: set_difficult(1))
-    but_medium = Button(1120, HEIGHT // 6 + 330, "medium_but_0.png", "medium_but_1.png", lambda: set_difficult(2))
-    but_hard = Button(1340, HEIGHT // 6 + 330, "hard_but_0.png", "hard_but_1.png", lambda: set_difficult(3))
-    but_1920x1080 = Button(1100, HEIGHT // 6 + 530, "1920x1080_but_0.png", "1920x1080_but_1.png",
+    but_easy = Button(800, HEIGHT // 6 * 3, "easy_but_0.png", "easy_but_1.png", lambda: set_difficult(1))
+    but_medium = Button(1010 + but_offset, HEIGHT // 6 * 3, "medium_but_0.png", "medium_but_1.png",
+                        lambda: set_difficult(2))
+    but_hard = Button(1220 + but_offset + but_offset, HEIGHT // 6 * 3, "hard_but_0.png", "hard_but_1.png",
+                      lambda: set_difficult(3))
+    but_1920x1080 = Button(1050 + WIDTH - 950 - 500, HEIGHT // 6 + 530, "1920x1080_but_0.png", "1920x1080_but_1.png",
                            lambda: change_screen_size(1920, 1080))
     but_1600x900 = Button(800, HEIGHT // 6 + 530, "1600x900_but_0.png", "1600x900_but_1.png",
                           lambda: change_screen_size(1600, 900))
+
+    ss_selected = load_image('selected_item.png')
+    diff_selected = load_image('selected_item.png')
 
     while is_settings:
         for event in pg.event.get():
@@ -464,8 +469,8 @@ def show_settings() -> None:
         but_back.x, but_back.y = WIDTH - 300, HEIGHT - 100
         but_offset = (WIDTH - 950 - 630) // 2
         but_easy.x = 800
-        but_medium.x = 800 + 210 + but_offset
-        but_hard.x = 800 + 210 + 210 + but_offset + but_offset
+        but_medium.x = 1010 + but_offset
+        but_hard.x = 1220 + but_offset + but_offset
 
         but_1920x1080.x = 1050 + WIDTH - 950 - 500
 
@@ -490,6 +495,23 @@ def show_settings() -> None:
             y -= 10
 
         print_text("DIFFICULT", 100, HEIGHT // 6 + 330, font_size=100, font=FONTS[5])
+        # d = MANAGER.data['difficult']
+        # if d == 1:
+        #     # screen.blit(diff_selected, (790, HEIGHT // 6 + 390))
+        #     # pg.draw.line(screen, '#ffdc2e', (900 - 10, HEIGHT // 6 + 330), (900 - 10, HEIGHT // 6 + 330 + 60), width=5)
+        #     pg.draw.rect(screen, 'red', but_easy.rect)
+        #     print(but_easy.rect)
+        # elif d == 2:
+        #     # screen.blit(diff_selected, (1000 + but_offset, HEIGHT // 6 + 390))
+        #     # pg.draw.line(screen, '#ffdc2e', (1010 + but_offset - 10, HEIGHT // 6 + 330), (1010 + but_offset - 10, HEIGHT // 6 + 330 + 60), width=5)
+        #     pg.draw.rect(screen, 'red', but_medium.rect)
+        #     print(but_medium.rect)
+        # else:
+        #     # screen.blit(diff_selected, (1210 + but_offset + but_offset, HEIGHT // 6 + 390))
+        #     # pg.draw.line(screen, '#ffdc2e', (1220 + but_offset + but_offset - 10, HEIGHT // 6 + 330), (1220 + but_offset + but_offset - 10, HEIGHT // 6 + 330 + 60), width=5)
+        #     pg.draw.rect(screen, 'red', but_hard.rect)
+        #     print(but_hard.rect)
+
         but_easy.draw()
         but_medium.draw()
         but_hard.draw()
@@ -558,7 +580,7 @@ def show_progress() -> None:
         print_text(f"FLIGHT TIME", 150, 770, font_size=70)
         t = int(MANAGER.data['3_achievement'].total_seconds())
         print_text(
-            f"{dt.datetime(2022, 1, 1, hour=t // 3600, minute=t // 60, second=t - t // 3600 * 3600 - t // 60 * 60).strftime('%H:%M:%S')}",
+            f"{dt.datetime(2022, 1, 1, hour=t // 3600, minute=(t - t // 3600 * 3600) // 60, second=t - (t // 3600 * 3600) - (t - t // 3600 * 3600) // 60 * 60).strftime('%H:%M:%S')}",
             650, 700, font_size=140)
         screen.blit(clock_img, (11, 710))
 
@@ -588,7 +610,7 @@ def set_difficult(n: int) -> None:
 
 
 if __name__ == "__main__":
-    environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (100, 100)  # это чтобы окно появлялось в на экране в определенных корд.
+    environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (100, 100)  # это чтобы окно появлялось на экране в определенных корд.
     pg.init()
     MANAGER = DataManager()
     size = WIDTH, HEIGHT = (1920, 1080) if MANAGER.data['full_screen'] else (1600, 900)
