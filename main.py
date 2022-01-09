@@ -61,7 +61,9 @@ class Button(pg.sprite.Sprite):
 class Asteroid(pg.sprite.Sprite):
     def __init__(self):
         super(Asteroid, self).__init__(asteroids)
-        self.image_original = load_image(f"asteroid{get_probability_asteroid()}.png")
+        r = get_probability_asteroid()
+        self.live = 2 if r == 7 else 1
+        self.image_original = load_image(f"asteroid{r}.png")
         self.rect_original = self.image_original.get_rect()
         self.rect_original.x = WIDTH + 100
         self.rect_original.y = randrange(HEIGHT)
@@ -82,32 +84,42 @@ class Asteroid(pg.sprite.Sprite):
 
         self.mask = pg.mask.from_surface(self.image)
 
+        self.boom_count = 5
+
     def update(self, args):
-        for i in args:
-            if i.type == pg.MOUSEBUTTONDOWN and self.rect.collidepoint(i.pos):
-                if PLAYER.ammunition > 0:
-                    Bullet(self, (PLAYER.rect.x, PLAYER.rect.y))
-                    PLAYER.ammunition -= 1
-                    break
+        if self.live:
+            for i in args:
+                if i.type == pg.MOUSEBUTTONDOWN and self.rect.collidepoint(i.pos):
+                    if PLAYER.ammunition > 0:
+                        Bullet(self, (PLAYER.rect.x, PLAYER.rect.y))
+                        PLAYER.ammunition -= 1
+                        break
 
-        if self.rect.x < -100:
-            self.kill()
-        self.image, self.rect = rotate_image(self.image_original, self.angle)
-        self.mask = pg.mask.from_surface(self.image)
-        self.rect_original = self.rect_original.move(self.vx, self.vy)
-        self.rect.center = self.rect_original.center
-        self.angle += self.diff_angle
+            if self.rect.x < -100:
+                self.kill()
+            self.image, self.rect = rotate_image(self.image_original, self.angle)
+            self.mask = pg.mask.from_surface(self.image)
+            self.rect_original = self.rect_original.move(self.vx, self.vy)
+            self.rect.center = self.rect_original.center
+            self.angle += self.diff_angle
 
-        if pg.sprite.spritecollideany(self, bullets):
-            for b in bullets:
-                if pg.sprite.collide_mask(self, b):
-                    self.destroy()
-                    b.die()
-                    break
+            if pg.sprite.spritecollideany(self, bullets):
+                for b in bullets:
+                    if pg.sprite.collide_rect(self, b) and self.live:
+                        self.destroy()
+                        b.die()
+                        break
+        elif self.live == 0:
+            if self.boom_count == 35:
+                self.kill()
+            self.image = load_image(f'boom_{self.boom_count // 5}.png')
+            self.boom_count += 1
+            self.rect_original = self.rect_original.move(self.vx, self.vy)
+            self.rect.center = self.rect_original.center
 
     def destroy(self):
         global SCORE
-        self.kill()
+        self.live = False
         MANAGER.data['2_achievement'] += 1
         SCORE += 1
 
@@ -137,73 +149,83 @@ class Ship(pg.sprite.Sprite):
         self.ammunition_regen = 4
         self.ammunition_regen_count = 0
 
+        self.boom_count = 5
+        self.live = True
+
     def update(self, event_=None):
-        if self.k_idle == 100:
-            self.k_idle = 0
-        self.image = self.images_idle[self.k_idle // 50]
-        self.k_idle += 1
+        if self.live:
+            if self.k_idle == 100:
+                self.k_idle = 0
+            self.image = self.images_idle[self.k_idle // 50]
+            self.k_idle += 1
 
-        keys = pg.key.get_pressed()
+            keys = pg.key.get_pressed()
 
-        if keys[pg.K_w] and not keys[pg.K_s]:
-            self.rect = self.rect.move(0, -1) if 0 < self.rect.y - 1 else self.rect
-            if self.k_up != 200:
-                self.image = self.images_up[self.k_up // 50]
-                self.k_up = self.k_up + 1 if self.k_up < 198 else 100
+            if keys[pg.K_w] and not keys[pg.K_s]:
+                self.rect = self.rect.move(0, -1) if 0 < self.rect.y - 1 else self.rect
+                if self.k_up != 200:
+                    self.image = self.images_up[self.k_up // 50]
+                    self.k_up = self.k_up + 1 if self.k_up < 198 else 100
+            else:
+                if self.k_up:
+                    self.image = self.images_up[0]
+                self.k_up = 0
+
+            if keys[pg.K_s] and not keys[pg.K_w]:
+                self.rect = self.rect.move(0, 1) if self.rect.y + 1 < HEIGHT - 44 else self.rect
+                if self.k_down != 200:
+                    self.image = self.images_down[self.k_down // 50]
+                    self.k_down = self.k_down + 1 if self.k_down < 198 else 100
+            else:
+                if self.k_down:
+                    self.image = self.images_down[0]
+                self.k_down = 0
+
+            if keys[pg.K_a] and not keys[pg.K_d]:
+                self.rect = self.rect.move(-1, 0) if self.rect.x > 0 else self.rect
+
+            if keys[pg.K_d] and not keys[pg.K_a]:
+                self.rect = self.rect.move(1, 0) if self.rect.x < WIDTH // 2 else self.rect
+
+            if pg.sprite.spritecollideany(self, asteroids):
+                for asteroid in asteroids:
+                    if pg.sprite.collide_mask(self, asteroid) and asteroid.live == 1:
+                        asteroid.live = 0
+                        self.die()
+                        break
+
+            if self.ammunition < 5:
+                for i in event_:
+                    if i.type == TIME_COUNT_EVENT:
+                        self.ammunition_regen_count += 1
+                if self.ammunition_regen_count == self.ammunition_regen:
+                    self.ammunition_regen_count = 0
+                    self.ammunition += 1
+
+            MANAGER.data['1_achievement'] += 0.01
         else:
-            if self.k_up:
-                self.image = self.images_up[0]
-            self.k_up = 0
-
-        if keys[pg.K_s] and not keys[pg.K_w]:
-            self.rect = self.rect.move(0, 1) if self.rect.y + 1 < HEIGHT - 44 else self.rect
-            if self.k_down != 200:
-                self.image = self.images_down[self.k_down // 50]
-                self.k_down = self.k_down + 1 if self.k_down < 198 else 100
-        else:
-            if self.k_down:
-                self.image = self.images_down[0]
-            self.k_down = 0
-
-        if keys[pg.K_a] and not keys[pg.K_d]:
-            self.rect = self.rect.move(-1, 0) if self.rect.x > 0 else self.rect
-
-        if keys[pg.K_d] and not keys[pg.K_a]:
-            self.rect = self.rect.move(1, 0) if self.rect.x < WIDTH // 2 else self.rect
-
-        if pg.sprite.spritecollideany(self, asteroids):
-            for asteroid in asteroids:
-                if pg.sprite.collide_mask(self, asteroid):
-                    self.die()
-                    break
-
-        if self.ammunition < 5:
-            for i in event_:
-                if i.type == TIME_COUNT_EVENT:
-                    self.ammunition_regen_count += 1
-            if self.ammunition_regen_count == self.ammunition_regen:
-                self.ammunition_regen_count = 0
-                self.ammunition += 1
-
-        MANAGER.data['1_achievement'] += 0.01
+            if self.boom_count == 55:
+                menu()
+            self.image = load_image(f'boom_ship_{self.boom_count // 5}.png')
+            self.boom_count += 1
 
     def die(self):
         MANAGER.data['max_score'] = int(SCORE) if int(MANAGER.data['max_score']) < int(SCORE) else MANAGER.data[
             'max_score']
-        menu()
+        self.live = False
 
 
 class Bullet(pg.sprite.Sprite):
     def __init__(self, asteroid: Asteroid, ship_pos: tuple):
         super(Bullet, self).__init__(bullets)
         self.target = asteroid
-        self.pos = list(ship_pos)
-        self.image = load_image('cursor.png')
+        self.pos = [ship_pos[0] + 64, ship_pos[1] + 20]
+        self.image = load_image('bullet.png')
         self.rect = self.image.get_rect()
         self.dvizh = (0, 0)
 
     def update(self):
-        if self.target.alive():
+        if self.target.live:
             dx = self.pos[0] - self.target.rect_original.x
             dy = self.pos[1] - self.target.rect_original.y
             dist = sqrt(dx * dx + dy * dy)
@@ -387,6 +409,8 @@ def start_game() -> None:
 
     PLAYER.rect.x = 100
     PLAYER.rect.y = HEIGHT // 2 - PLAYER.rect.height // 2
+    PLAYER.boom_count = 5
+    PLAYER.live = True
 
     asteroids.empty()
     bullets.empty()
