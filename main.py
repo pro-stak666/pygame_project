@@ -21,11 +21,13 @@ class DataManager:
                 self.data[i] = int(self.data[i])
 
     def save(self):
+        global ALL_TIME
         self.data['1_achievement'] = round(self.data['1_achievement'])
         t = str(self.data['3_achievement']).split(':')
         t = dt.timedelta(hours=int(t[0]), minutes=int(t[1]), seconds=int(t[2]))
         self.data['3_achievement'] = t + ALL_TIME
-
+        print(ALL_TIME)
+        ALL_TIME = dt.timedelta()
         with open('data/data.csv', 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=list(self.data.keys()), delimiter=';')
             writer.writeheader()
@@ -310,6 +312,7 @@ def continue_game():
     global is_pause
     is_pause = False
     cursor.image = load_image("cursor.png")
+    pg.time.set_timer(TIME_COUNT_EVENT, 1000)
 
 
 def pause() -> None:
@@ -322,6 +325,7 @@ def pause() -> None:
     but_continue = Button(WIDTH // 2 + 50, HEIGHT - 300, "continue_but_0.png", "continue_but_1.png", continue_game)
 
     high_score = MANAGER.data['max_score']
+    pg.time.set_timer(TIME_COUNT_EVENT, 0)
 
     while is_pause:
         for event in pg.event.get():
@@ -369,7 +373,6 @@ def pause() -> None:
 
         pg.display.flip()
         clock.tick(fps)
-        print(len(asteroids))
 
 
 def print_text(text, x, y, font_color=(255, 255, 255), font="data/Comfortaa.ttf", font_size=30) -> None:
@@ -391,9 +394,11 @@ def start_game() -> None:
 
     PLAYER.ammunition = 5
     SCORE = 0
+    ALL_TIME = dt.timedelta()
     diff = int(MANAGER.data['difficult'])
     score_pluser = float(f'0.0{diff}')
     pg.time.set_timer(SPAWN_ASTEROIDS_EVENT, 900 // diff + 100 * diff)
+    pg.time.set_timer(TIME_COUNT_EVENT, 1000)
 
     running = True
 
@@ -508,9 +513,6 @@ def show_settings() -> None:
     but_1600x900 = Button(800, HEIGHT // 6 + 530, "1600x900_but_0.png", "1600x900_but_1.png",
                           lambda: change_screen_size(1600, 900))
 
-    ss_selected = load_image('selected_item.png')
-    diff_selected = load_image('selected_item.png')
-
     while is_settings:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -540,11 +542,11 @@ def show_settings() -> None:
         volume = 1  # MANAGER.data['volume']
         but_back.x, but_back.y = WIDTH - 300, HEIGHT - 100
         but_offset = (WIDTH - 950 - 630) // 2
-        but_easy.x = 800
-        but_medium.x = 1010 + but_offset
-        but_hard.x = 1220 + but_offset + but_offset
-
-        but_1920x1080.x = 1050 + WIDTH - 950 - 500
+        but_easy.x, but_easy.y = 800, HEIGHT // 6 * 3
+        but_medium.x, but_medium.y = 1010 + but_offset, HEIGHT // 6 * 3
+        but_hard.x, but_hard.y = 1220 + but_offset + but_offset, HEIGHT // 6 * 3
+        but_1920x1080.x, but_1920x1080.y = 1050 + WIDTH - 950 - 500, HEIGHT // 6 + 530
+        but_1600x900.x, but_1600x900.y = 800, HEIGHT // 6 + 530
 
         print_text("MUSIC", 100, HEIGHT // 6 - 70, font_size=100, font=FONTS[5])
         print_text('+', WIDTH - 150, HEIGHT // 6 - 125, font_size=150, font_color='green')
@@ -567,22 +569,28 @@ def show_settings() -> None:
             y -= 10
 
         print_text("DIFFICULT", 100, HEIGHT // 6 + 330, font_size=100, font=FONTS[5])
-        # d = MANAGER.data['difficult']
-        # if d == 1:
-        #     # screen.blit(diff_selected, (790, HEIGHT // 6 + 390))
-        #     # pg.draw.line(screen, '#ffdc2e', (900 - 10, HEIGHT // 6 + 330), (900 - 10, HEIGHT // 6 + 330 + 60), width=5)
-        #     pg.draw.rect(screen, 'red', but_easy.rect)
-        #     print(but_easy.rect)
-        # elif d == 2:
-        #     # screen.blit(diff_selected, (1000 + but_offset, HEIGHT // 6 + 390))
-        #     # pg.draw.line(screen, '#ffdc2e', (1010 + but_offset - 10, HEIGHT // 6 + 330), (1010 + but_offset - 10, HEIGHT // 6 + 330 + 60), width=5)
-        #     pg.draw.rect(screen, 'red', but_medium.rect)
-        #     print(but_medium.rect)
-        # else:
-        #     # screen.blit(diff_selected, (1210 + but_offset + but_offset, HEIGHT // 6 + 390))
-        #     # pg.draw.line(screen, '#ffdc2e', (1220 + but_offset + but_offset - 10, HEIGHT // 6 + 330), (1220 + but_offset + but_offset - 10, HEIGHT // 6 + 330 + 60), width=5)
-        #     pg.draw.rect(screen, 'red', but_hard.rect)
-        #     print(but_hard.rect)
+        d = MANAGER.data['difficult']
+        if d == 1:
+            pg.draw.line(screen, 'yellow', (795, HEIGHT // 6 * 3), (795, HEIGHT // 6 * 3 + 60))
+            pg.draw.line(screen, 'yellow', (1015, HEIGHT // 6 * 3), (1015, HEIGHT // 6 * 3 + 60))
+        elif d == 2:
+            pg.draw.line(screen, 'yellow', (1005 + but_offset, HEIGHT // 6 * 3),
+                         (1005 + but_offset, HEIGHT // 6 * 3 + 60))
+            pg.draw.line(screen, 'yellow', (1225 + but_offset, HEIGHT // 6 * 3),
+                         (1225 + but_offset, HEIGHT // 6 * 3 + 60))
+        else:
+            pg.draw.line(screen, 'yellow', (1215 + but_offset + but_offset, HEIGHT // 6 * 3),
+                         (1215 + but_offset + but_offset, HEIGHT // 6 * 3 + 60))
+            pg.draw.line(screen, 'yellow', (1435 + but_offset + but_offset, HEIGHT // 6 * 3),
+                         (1435 + but_offset + but_offset, HEIGHT // 6 * 3 + 60))
+
+        d = MANAGER.data['full_screen']
+        if d == 1:
+            pg.draw.line(screen, 'yellow', (WIDTH - 405, HEIGHT // 6 + 530), (WIDTH - 405, HEIGHT // 6 + 580))
+            pg.draw.line(screen, 'yellow', (WIDTH - 145, HEIGHT // 6 + 530), (WIDTH - 145, HEIGHT // 6 + 580))
+        else:
+            pg.draw.line(screen, 'yellow', (795, HEIGHT // 6 + 530), (795, HEIGHT // 6 + 580))
+            pg.draw.line(screen, 'yellow', (1055, HEIGHT // 6 + 530), (1055, HEIGHT // 6 + 580))
 
         but_easy.draw()
         but_medium.draw()
@@ -673,7 +681,6 @@ def change_screen_size(w: int, h: int) -> None:
             screen = pg.display.set_mode((WIDTH, HEIGHT), pg.FULLSCREEN)
         else:
             MANAGER.data['full_screen'] = 0
-            environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (100, 100)
             screen = pg.display.set_mode((WIDTH, HEIGHT))
 
 
@@ -710,6 +717,9 @@ def preview() -> None:
                 cursor.image.set_alpha(255)
             else:
                 cursor.image.set_alpha(0)
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    is_preview = False
 
         screen.fill('#101010')
 
@@ -720,7 +730,7 @@ def preview() -> None:
 
         pg.display.flip()
         clock.tick(fps)
-    pg.time.set_timer(TIME_COUNT_EVENT, 1000)
+    pg.time.set_timer(TIME_COUNT_EVENT, 0)
     menu()
 
 
