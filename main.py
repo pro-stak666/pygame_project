@@ -3,6 +3,7 @@ from os import path, environ
 from random import random, choice, randrange
 import csv
 import datetime as dt
+from math import sqrt
 
 
 class DataManager:
@@ -13,7 +14,7 @@ class DataManager:
                 writer.writerow(['max_score', 'volume', 'difficult', 'full_screen', '1_achievement', '2_achievement',
                                  '3_achievement'])
                 time = dt.timedelta()
-                writer.writerow([0, 1, 0, 1, 0, 0, time])
+                writer.writerow([0, 1, 1, 1, 0, 0, time])
         self.data = csv.DictReader(open('data/data.csv', encoding='utf-8'), delimiter=';').__next__()
         for i in self.data:
             if ':' not in self.data[i]:
@@ -82,7 +83,10 @@ class Asteroid(pg.sprite.Sprite):
     def update(self, args):
         for i in args:
             if i.type == pg.MOUSEBUTTONDOWN and self.rect.collidepoint(i.pos):
-                self.destroy()
+                if PLAYER.ammunition > 0:
+                    Bullet(self, (PLAYER.rect.x, PLAYER.rect.y))
+                    PLAYER.ammunition -= 1
+                    break
 
         if self.rect.x < -100:
             self.kill()
@@ -91,6 +95,13 @@ class Asteroid(pg.sprite.Sprite):
         self.rect_original = self.rect_original.move(self.vx, self.vy)
         self.rect.center = self.rect_original.center
         self.angle += self.diff_angle
+
+        if pg.sprite.spritecollideany(self, bullets):
+            for b in bullets:
+                if pg.sprite.collide_mask(self, b):
+                    self.destroy()
+                    b.die()
+                    break
 
     def destroy(self):
         global SCORE
@@ -120,7 +131,9 @@ class Ship(pg.sprite.Sprite):
 
         self.mask = pg.mask.from_surface(self.image)
 
-        self.time = dt.timedelta(hours=0, minutes=0, seconds=0)
+        self.ammunition = 5
+        self.ammunition_regen = 4
+        self.ammunition_regen_count = 0
 
     def update(self, event_=None):
         if self.k_idle == 100:
@@ -162,12 +175,62 @@ class Ship(pg.sprite.Sprite):
                     self.die()
                     break
 
+        if self.ammunition < 5:
+            for i in event_:
+                if i.type == TIME_COUNT_EVENT:
+                    self.ammunition_regen_count += 1
+            if self.ammunition_regen_count == self.ammunition_regen:
+                self.ammunition_regen_count = 0
+                self.ammunition += 1
+
         MANAGER.data['1_achievement'] += 0.01
 
     def die(self):
         MANAGER.data['max_score'] = int(SCORE) if int(MANAGER.data['max_score']) < int(SCORE) else MANAGER.data[
             'max_score']
         menu()
+
+
+class Bullet(pg.sprite.Sprite):
+    def __init__(self, asteroid: Asteroid, ship_pos: tuple):
+        super(Bullet, self).__init__(bullets)
+        self.target = asteroid
+        self.pos = list(ship_pos)
+        self.image = load_image('cursor.png')
+        self.rect = self.image.get_rect()
+        self.dvizh = (0, 0)
+
+    def update(self):
+        if self.target.alive():
+            dx = self.pos[0] - self.target.rect_original.x
+            dy = self.pos[1] - self.target.rect_original.y
+            dist = sqrt(dx * dx + dy * dy)
+            if dist:
+                dx /= dist
+                dy /= dist
+            move_dist = min(-1, dist)
+
+            self.pos[0] += round(move_dist * dx * 10)
+            self.pos[1] += round(move_dist * dy * 10)
+            self.rect.x, self.rect.y = self.pos
+            self.dvizh = round(move_dist * dx * 10), round(move_dist * dy * 10)
+        else:
+            if self.is_focus():
+                if self.dvizh == (0, 0):
+                    self.die()
+                self.pos[0] += self.dvizh[0]
+                self.pos[1] += self.dvizh[1]
+                self.rect.x, self.rect.y = self.pos
+            else:
+                self.die()
+
+    def die(self):
+        self.kill()
+
+    def is_focus(self):
+        if -30 < self.pos[0] < WIDTH + 30 and -30 < self.pos[1] < HEIGHT + 30:
+            return True
+        return False
 
 
 def load_image(name: str) -> pg.image:
@@ -229,7 +292,7 @@ def menu() -> None:
         screen.blit(background, (rel_x_bkgd - background.get_rect().width, 0))
         if rel_x_bkgd < WIDTH:
             screen.blit(background, (rel_x_bkgd, 0))
-        x_bkgd -= 0
+        x_bkgd -= 0.3
         # отрисовка фона
 
         but_start.draw()
@@ -240,7 +303,7 @@ def menu() -> None:
 
         all_sprites.draw(screen)
         pg.display.flip()
-        clock.tick(fps)
+        clock.tick(100)
 
 
 def continue_game():
@@ -289,6 +352,7 @@ def pause() -> None:
 
         asteroids.draw(screen)
         player.draw(screen)
+        bullets.draw(screen)
 
         screen.blit(pause_img, ((WIDTH - 800) // 2, (HEIGHT - 700) // 2))
 
@@ -305,6 +369,7 @@ def pause() -> None:
 
         pg.display.flip()
         clock.tick(fps)
+        print(len(asteroids))
 
 
 def print_text(text, x, y, font_color=(255, 255, 255), font="data/Comfortaa.ttf", font_size=30) -> None:
@@ -321,12 +386,14 @@ def start_game() -> None:
     PLAYER.rect.y = HEIGHT // 2 - PLAYER.rect.height // 2
 
     asteroids.empty()
+    bullets.empty()
     cursor.image = load_image("cursor.png")
 
+    PLAYER.ammunition = 5
     SCORE = 0
     diff = int(MANAGER.data['difficult'])
     score_pluser = float(f'0.0{diff}')
-    pg.time.set_timer(SPAWN_ASTEROIDS, 900 // diff + 100 * diff)
+    pg.time.set_timer(SPAWN_ASTEROIDS_EVENT, 900 // diff + 100 * diff)
 
     running = True
 
@@ -335,10 +402,10 @@ def start_game() -> None:
         for event in events:
             if event.type == pg.QUIT:
                 running = False
-            if event.type == SPAWN_ASTEROIDS:
+            if event.type == SPAWN_ASTEROIDS_EVENT:
                 for _ in range(diff):
                     Asteroid()
-            if event.type == TIME_COUNT:
+            if event.type == TIME_COUNT_EVENT:
                 ALL_TIME += one_second
             if pg.mouse.get_focused():
                 pg.mouse.set_visible(False)
@@ -365,12 +432,17 @@ def start_game() -> None:
         for i in asteroids:
             i.update(events)
 
+        for i in bullets:
+            i.update()
+
         asteroids.draw(screen)
         player.draw(screen)
         all_sprites.draw(screen)
+        bullets.draw(screen)
 
         SCORE += score_pluser
         print_text(f"SCORE: {int(SCORE)}", WIDTH - 300, 10, font=FONTS[1])
+        print_text(f"AMMUNITION: {PLAYER.ammunition}", WIDTH - 700, 10, font=FONTS[1])
 
         pg.display.flip()
         clock.tick(fps)
@@ -403,7 +475,7 @@ def show_titles() -> None:  # game designer, producer, artist, programmer, devel
         screen.blit(background, (rel_x_bkgd - background.get_rect().width, 0))
         if rel_x_bkgd < WIDTH:
             screen.blit(background, (rel_x_bkgd, 0))
-        x_bkgd -= 0
+        x_bkgd -= 0.3
         # отрисовка фона
 
         print_text("COMPANY - RepeekGames", 200, 100, font_size=50, font=FONTS[1])
@@ -460,7 +532,7 @@ def show_settings() -> None:
         screen.blit(background, (rel_x_bkgd - background.get_rect().width, 0))
         if rel_x_bkgd < WIDTH:
             screen.blit(background, (rel_x_bkgd, 0))
-        x_bkgd -= 0
+        x_bkgd -= 0.3
         # отрисовка фона
 
         but_back.draw()
@@ -558,7 +630,7 @@ def show_progress() -> None:
         screen.blit(background, (rel_x_bkgd - background.get_rect().width, 0))
         if rel_x_bkgd < WIDTH:
             screen.blit(background, (rel_x_bkgd, 0))
-        x_bkgd -= 0
+        x_bkgd -= 0.3
         # отрисовка фона
 
         print_text(f"BEST", 150, 100, font_size=70)
@@ -609,6 +681,49 @@ def set_difficult(n: int) -> None:
     MANAGER.data['difficult'] = n
 
 
+def preview() -> None:
+    is_preview = True
+    company = load_image('company_name.png')
+    plads = load_image('game_name.png')
+    alpha1 = 0
+    alpha2 = 0
+    m = False
+    while is_preview:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                quit()
+            if event.type == TIME_COUNT_EVENT:
+                if m:
+                    alpha2 -= 0.04
+                    alpha1 -= 0.04
+                    if alpha2 < -1:
+                        is_preview = False
+                else:
+                    alpha1 += 0.02
+                    if alpha1 > 1:
+                        alpha2 += 0.02
+                    if alpha2 > 1.5:
+                        alpha2, alpha1, m = 1, 1, True
+            if pg.mouse.get_focused():
+                pg.mouse.set_visible(False)
+                cursor.rect.x, cursor.rect.y = pg.mouse.get_pos()
+                cursor.image.set_alpha(255)
+            else:
+                cursor.image.set_alpha(0)
+
+        screen.fill('#101010')
+
+        plads.set_alpha(255 * alpha2)
+        company.set_alpha(255 * alpha1)
+        screen.blit(plads, (WIDTH // 3, HEIGHT // 2))
+        screen.blit(company, (WIDTH // 3, HEIGHT // 3))
+
+        pg.display.flip()
+        clock.tick(fps)
+    pg.time.set_timer(TIME_COUNT_EVENT, 1000)
+    menu()
+
+
 if __name__ == "__main__":
     environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (100, 100)  # это чтобы окно появлялось на экране в определенных корд.
     pg.init()
@@ -625,16 +740,17 @@ if __name__ == "__main__":
     all_sprites = pg.sprite.Group()
     asteroids = pg.sprite.Group()
     player = pg.sprite.Group()
+    bullets = pg.sprite.Group()
 
     cursor = pg.sprite.Sprite(all_sprites)
     cursor.image = load_image("cursor.png")
     cursor.rect = cursor.image.get_rect()
 
-    SPAWN_ASTEROIDS = pg.USEREVENT + 1
-    pg.time.set_timer(SPAWN_ASTEROIDS, 1000)
+    SPAWN_ASTEROIDS_EVENT = pg.USEREVENT + 1
+    pg.time.set_timer(SPAWN_ASTEROIDS_EVENT, 1000)
 
-    TIME_COUNT = pg.USEREVENT + 1
-    pg.time.set_timer(TIME_COUNT, 1000)
+    TIME_COUNT_EVENT = pg.USEREVENT + 1
+    pg.time.set_timer(TIME_COUNT_EVENT, 100)
 
     PLAYER = Ship()
 
@@ -647,4 +763,6 @@ if __name__ == "__main__":
     FONTS = ['data/Comfortaa.ttf', 'data/Changa.ttf', 'data/Nunito.ttf', 'data/Orbitron.ttf', 'data/Signika.ttf',
              'data/StickNoBills.ttf']
 
-    menu()
+    BULLET_ASTEROID = []
+
+    preview()
