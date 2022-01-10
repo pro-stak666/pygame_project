@@ -11,14 +11,14 @@ class DataManager:
         if not path.isfile("data/data.csv"):
             with open('data/data.csv', 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=';')
-                writer.writerow(['max_score', 'volume', 'difficult', 'full_screen', '1_achievement', '2_achievement',
+                writer.writerow(['max_score', 'volume_music', 'volume_sound', 'difficult', 'full_screen', '1_achievement', '2_achievement',
                                  '3_achievement'])
                 time = dt.timedelta()
-                writer.writerow([0, 1, 1, 1, 0, 0, time])
+                writer.writerow([0, 1, 1, 1, 1, 0, 0, time])
         self.data = csv.DictReader(open('data/data.csv', encoding='utf-8'), delimiter=';').__next__()
         for i in self.data:
             if ':' not in self.data[i]:
-                self.data[i] = int(self.data[i])
+                self.data[i] = float(self.data[i])
 
     def save(self):
         global ALL_TIME
@@ -89,8 +89,9 @@ class Asteroid(pg.sprite.Sprite):
     def update(self, args):
         if self.live:
             for i in args:
-                if i.type == pg.MOUSEBUTTONDOWN and self.rect.collidepoint(i.pos):
-                    if PLAYER.ammunition > 0:
+                if i.type == pg.MOUSEBUTTONDOWN and self.rect.collidepoint((i.pos[0] + 16, i.pos[1] + 16)):
+                    if PLAYER.ammunition > 0 and self.live == 1:
+                        sound_shoot.play()
                         Bullet(self, (PLAYER.rect.x, PLAYER.rect.y))
                         PLAYER.ammunition -= 1
                         break
@@ -105,9 +106,10 @@ class Asteroid(pg.sprite.Sprite):
 
             if pg.sprite.spritecollideany(self, bullets):
                 for b in bullets:
-                    if pg.sprite.collide_rect(self, b) and self.live:
+                    if pg.sprite.collide_rect(self, b) and self.live == 1:
                         self.destroy()
                         b.die()
+                        sound_boom_asteroid.play()
                         break
         elif self.live == 0:
             if self.boom_count == 35:
@@ -116,6 +118,7 @@ class Asteroid(pg.sprite.Sprite):
             self.boom_count += 1
             self.rect_original = self.rect_original.move(self.vx, self.vy)
             self.rect.center = self.rect_original.center
+            print_text("+1", self.rect_original.x + 64, self.rect_original.y - self.boom_count)
 
     def destroy(self):
         global SCORE
@@ -190,8 +193,9 @@ class Ship(pg.sprite.Sprite):
             if pg.sprite.spritecollideany(self, asteroids):
                 for asteroid in asteroids:
                     if pg.sprite.collide_mask(self, asteroid) and asteroid.live == 1:
-                        asteroid.live = 0
+                        asteroid.destroy()
                         self.die()
+                        sound_boom_ship.play()
                         break
 
             if self.ammunition < 5:
@@ -223,6 +227,7 @@ class Bullet(pg.sprite.Sprite):
         self.image = load_image('bullet.png')
         self.rect = self.image.get_rect()
         self.dvizh = (0, 0)
+        self.is_flip = False
 
     def update(self):
         if self.target.live:
@@ -247,6 +252,9 @@ class Bullet(pg.sprite.Sprite):
                 self.rect.x, self.rect.y = self.pos
             else:
                 self.die()
+        if self.target.rect_original.x < self.rect.x and self.is_flip is False:
+            self.image = pg.transform.flip(self.image, True, False)
+            self.is_flip = True
 
     def die(self):
         self.kill()
@@ -282,12 +290,13 @@ def get_probability_asteroid() -> int:
 
 
 def exit_app():
+    sound_click.play()
     MANAGER.save()
     quit()
 
 
 def menu() -> None:
-    global x_bkgd, rel_x_bkgd
+    global x_bkgd, rel_x_bkgd, is_soundtrack_playing
     is_menu = True
     cursor.image = load_image("cursor_menu.png")
     h = (HEIGHT + 250) // 5
@@ -296,7 +305,10 @@ def menu() -> None:
     but_progress = Button(WIDTH // 2 - 125, h + 140, 'progress_but_0.png', 'progress_but_1.png', show_progress)
     but_titles = Button(WIDTH // 2 - 125, h + 210, 'titles_but_0.png', 'titles_but_1.png', show_titles)
     but_exit = Button(WIDTH // 2 - 125, h + 280, 'exit_but_0.png', 'exit_but_1.png', exit_app)
-
+    sound_click.play()
+    if is_soundtrack_playing is False:
+        pg.mixer.music.play(-1)
+        is_soundtrack_playing = True
     while is_menu:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -331,6 +343,7 @@ def menu() -> None:
 
 
 def continue_game():
+    sound_click.play()
     global is_pause
     is_pause = False
     cursor.image = load_image("cursor.png")
@@ -426,6 +439,8 @@ def start_game() -> None:
 
     running = True
 
+    sound_click.play()
+
     while running:
         events = pg.event.get()
         for event in events:
@@ -483,6 +498,8 @@ def show_titles() -> None:  # game designer, producer, artist, programmer, devel
 
     but_back = Button(WIDTH - 300, HEIGHT - 100, "back_but_0.png", "back_but_1.png", menu)
 
+    sound_click.play()
+
     while is_titles:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -507,7 +524,7 @@ def show_titles() -> None:  # game designer, producer, artist, programmer, devel
         x_bkgd -= 0.3
         # отрисовка фона
 
-        print_text("COMPANY - RepeekGames", 200, 100, font_size=50, font=FONTS[1])
+        print_text("GAME STUDIO - RepeekGames", 200, 100, font_size=50, font=FONTS[1])
         print_text("GAME DESIGNER - Mineev Kirill", 200, 250, font_size=50, font=FONTS[1])
         print_text("PRODUCER - Mineev Kirill", 200, 350, font_size=50, font=FONTS[1])
         print_text("PAINTER - Mineev Kirill", 200, 450, font_size=50, font=FONTS[1])
@@ -537,6 +554,8 @@ def show_settings() -> None:
     but_1600x900 = Button(800, HEIGHT // 6 + 530, "1600x900_but_0.png", "1600x900_but_1.png",
                           lambda: change_screen_size(1600, 900))
 
+    sound_click.play()
+
     while is_settings:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -550,6 +569,34 @@ def show_settings() -> None:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     menu()
+            if event.type == pg.MOUSEBUTTONDOWN:
+                music_minus = pg.rect.Rect(780, HEIGHT//6 - 90, 100, 100)
+                music_plus = pg.rect.Rect(WIDTH - 160, HEIGHT//6 - 90, 100, 100)
+                sound_minus = pg.rect.Rect(780, HEIGHT//6 + 110, 100, 100)
+                sound_plus = pg.rect.Rect(WIDTH - 160, HEIGHT//6 + 110, 100, 100)
+                if music_minus.collidepoint(event.pos):
+                    MANAGER.data['volume_music'] -= 0.1
+                    pg.mixer.music.set_volume(float(MANAGER.data['volume_music']))
+                elif music_plus.collidepoint(event.pos):
+                    MANAGER.data['volume_music'] += 0.1
+                    pg.mixer.music.set_volume(float(MANAGER.data['volume_music']))
+                elif sound_minus.collidepoint(event.pos):
+                    MANAGER.data['volume_sound'] -= 0.1
+                    sound_intro.set_volume(float(MANAGER.data['volume_sound']))
+                    sound_click.set_volume(float(MANAGER.data['volume_sound']))
+                    sound_click_2.set_volume(float(MANAGER.data['volume_sound']))
+                    sound_boom_asteroid.set_volume(float(MANAGER.data['volume_sound']))
+                    sound_boom_ship.set_volume(float(MANAGER.data['volume_sound']))
+                    sound_shoot.set_volume(float(MANAGER.data['volume_sound']))
+                elif sound_plus.collidepoint(event.pos):
+                    MANAGER.data['volume_sound'] += 0.1
+                    sound_intro.set_volume(float(MANAGER.data['volume_sound']))
+                    sound_click.set_volume(float(MANAGER.data['volume_sound']))
+                    sound_click_2.set_volume(float(MANAGER.data['volume_sound']))
+                    sound_boom_asteroid.set_volume(float(MANAGER.data['volume_sound']))
+                    sound_boom_ship.set_volume(float(MANAGER.data['volume_sound']))
+                    sound_shoot.set_volume(float(MANAGER.data['volume_sound']))
+
 
         screen.fill('black')
 
@@ -563,7 +610,8 @@ def show_settings() -> None:
 
         but_back.draw()
 
-        volume = 1  # MANAGER.data['volume']
+        volume_music = float(MANAGER.data['volume_music'])
+        volume_sound = float(MANAGER.data['volume_sound'])
         but_back.x, but_back.y = WIDTH - 300, HEIGHT - 100
         but_offset = (WIDTH - 950 - 630) // 2
         but_easy.x, but_easy.y = 800, HEIGHT // 6 * 3
@@ -576,7 +624,7 @@ def show_settings() -> None:
         print_text('+', WIDTH - 150, HEIGHT // 6 - 125, font_size=150, font_color='green')
         print_text('-', 800, HEIGHT // 6 - 125, font_size=150, font_color='red')
         x, y, w, h = 900, HEIGHT // 6, (WIDTH - 1000) // 10 - 20, 10
-        for i in range(round(volume * 10)):
+        for i in range(round(volume_music * 10)):
             pg.draw.rect(screen, 'green', (x, y, w, h))
             x += w + 10
             h += 10
@@ -586,7 +634,7 @@ def show_settings() -> None:
         print_text('+', WIDTH - 150, HEIGHT // 6 + 75, font_size=150, font_color='green')
         print_text('-', 800, HEIGHT // 6 + 75, font_size=150, font_color='red')
         x, y, w, h = 900, HEIGHT // 6 + 200, (WIDTH - 1000) // 10 - 20, 10
-        for i in range(round(volume * 10)):
+        for i in range(round(volume_sound * 10)):
             pg.draw.rect(screen, 'green', (x, y, w, h))
             x += w + 10
             h += 10
@@ -640,6 +688,8 @@ def show_progress() -> None:
     clock_img = load_image('clock.png')
 
     MANAGER.save()
+
+    sound_click.play()
 
     while is_progress:
         for event in pg.event.get():
@@ -698,6 +748,7 @@ def show_progress() -> None:
 
 def change_screen_size(w: int, h: int) -> None:
     global WIDTH, HEIGHT, screen
+    sound_click_2.play()
     if WIDTH != w:
         WIDTH, HEIGHT = w, h
         if w == 1920:
@@ -709,6 +760,7 @@ def change_screen_size(w: int, h: int) -> None:
 
 
 def set_difficult(n: int) -> None:
+    sound_click_2.play()
     MANAGER.data['difficult'] = n
 
 
@@ -719,6 +771,7 @@ def preview() -> None:
     alpha1 = 0
     alpha2 = 0
     m = False
+    sound_intro.play()
     while is_preview:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -730,9 +783,9 @@ def preview() -> None:
                     if alpha2 < -1:
                         is_preview = False
                 else:
-                    alpha1 += 0.02
+                    alpha1 += 0.07
                     if alpha1 > 1:
-                        alpha2 += 0.02
+                        alpha2 += 0.07
                     if alpha2 > 1.5:
                         alpha2, alpha1, m = 1, 1, True
             if pg.mouse.get_focused():
@@ -741,9 +794,6 @@ def preview() -> None:
                 cursor.image.set_alpha(255)
             else:
                 cursor.image.set_alpha(0)
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_ESCAPE:
-                    is_preview = False
 
         screen.fill('#101010')
 
@@ -760,6 +810,7 @@ def preview() -> None:
 
 if __name__ == "__main__":
     environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (100, 100)  # это чтобы окно появлялось на экране в определенных корд.
+    pg.mixer.pre_init(44100, -16, 1, 512)
     pg.init()
     MANAGER = DataManager()
     size = WIDTH, HEIGHT = (1920, 1080) if MANAGER.data['full_screen'] else (1600, 900)
@@ -798,5 +849,16 @@ if __name__ == "__main__":
              'data/StickNoBills.ttf']
 
     BULLET_ASTEROID = []
+
+    pg.mixer.music.load('sounds/soundtrack.mp3')
+    pg.mixer.music.set_volume(MANAGER.data['volume_music'])
+    is_soundtrack_playing = False
+
+    sound_intro = pg.mixer.Sound("sounds/intro.wav")
+    sound_click = pg.mixer.Sound("sounds/click.wav")
+    sound_click_2 = pg.mixer.Sound("sounds/change.wav")
+    sound_boom_asteroid = pg.mixer.Sound("sounds/boom.wav")
+    sound_boom_ship = pg.mixer.Sound("sounds/boom2.wav")
+    sound_shoot = pg.mixer.Sound("sounds/shoot.wav")
 
     preview()
