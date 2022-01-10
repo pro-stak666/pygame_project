@@ -575,13 +575,13 @@ def show_settings() -> None:
                 sound_minus = pg.rect.Rect(780, HEIGHT//6 + 110, 100, 100)
                 sound_plus = pg.rect.Rect(WIDTH - 160, HEIGHT//6 + 110, 100, 100)
                 if music_minus.collidepoint(event.pos):
-                    MANAGER.data['volume_music'] -= 0.1
+                    MANAGER.data['volume_music'] -= 0.1 if MANAGER.data['volume_music'] > 0 else 0
                     pg.mixer.music.set_volume(float(MANAGER.data['volume_music']))
                 elif music_plus.collidepoint(event.pos):
-                    MANAGER.data['volume_music'] += 0.1
+                    MANAGER.data['volume_music'] += 0.1 if MANAGER.data['volume_music'] < 1 else 0
                     pg.mixer.music.set_volume(float(MANAGER.data['volume_music']))
                 elif sound_minus.collidepoint(event.pos):
-                    MANAGER.data['volume_sound'] -= 0.1
+                    MANAGER.data['volume_sound'] -= 0.1 if MANAGER.data['volume_sound'] > 0 else 0
                     sound_intro.set_volume(float(MANAGER.data['volume_sound']))
                     sound_click.set_volume(float(MANAGER.data['volume_sound']))
                     sound_click_2.set_volume(float(MANAGER.data['volume_sound']))
@@ -589,7 +589,7 @@ def show_settings() -> None:
                     sound_boom_ship.set_volume(float(MANAGER.data['volume_sound']))
                     sound_shoot.set_volume(float(MANAGER.data['volume_sound']))
                 elif sound_plus.collidepoint(event.pos):
-                    MANAGER.data['volume_sound'] += 0.1
+                    MANAGER.data['volume_sound'] += 0.1 if MANAGER.data['volume_sound'] < 1 else 0
                     sound_intro.set_volume(float(MANAGER.data['volume_sound']))
                     sound_click.set_volume(float(MANAGER.data['volume_sound']))
                     sound_click_2.set_volume(float(MANAGER.data['volume_sound']))
@@ -860,5 +860,12 @@ if __name__ == "__main__":
     sound_boom_asteroid = pg.mixer.Sound("sounds/boom.wav")
     sound_boom_ship = pg.mixer.Sound("sounds/boom2.wav")
     sound_shoot = pg.mixer.Sound("sounds/shoot.wav")
+
+    sound_intro.set_volume(float(MANAGER.data['volume_sound']))
+    sound_click.set_volume(float(MANAGER.data['volume_sound']))
+    sound_click_2.set_volume(float(MANAGER.data['volume_sound']))
+    sound_boom_asteroid.set_volume(float(MANAGER.data['volume_sound']))
+    sound_boom_ship.set_volume(float(MANAGER.data['volume_sound']))
+    sound_shoot.set_volume(float(MANAGER.data['volume_sound']))
 
     preview()
