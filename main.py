@@ -4,6 +4,7 @@ from random import random, choice, randrange
 import csv
 import datetime as dt
 from math import sqrt
+import sys
 
 
 class DataManager:
@@ -11,8 +12,10 @@ class DataManager:
         if not path.isfile("data/data.csv"):
             with open('data/data.csv', 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f, delimiter=';')
-                writer.writerow(['max_score', 'volume_music', 'volume_sound', 'difficult', 'full_screen', '1_achievement', '2_achievement',
-                                 '3_achievement'])
+                writer.writerow(
+                    ['max_score', 'volume_music', 'volume_sound', 'difficult', 'full_screen', '1_achievement',
+                     '2_achievement',
+                     '3_achievement'])
                 time = dt.timedelta()
                 writer.writerow([0, 1, 1, 1, 1, 0, 0, time])
         self.data = csv.DictReader(open('data/data.csv', encoding='utf-8'), delimiter=';').__next__()
@@ -208,8 +211,8 @@ class Ship(pg.sprite.Sprite):
 
             MANAGER.data['1_achievement'] += 0.01
         else:
-            if self.boom_count == 55:
-                menu()
+            if self.boom_count == 65:
+                game_over()
             self.image = load_image(f'boom_ship_{self.boom_count // 5}.png')
             self.boom_count += 1
 
@@ -292,7 +295,7 @@ def get_probability_asteroid() -> int:
 def exit_app():
     sound_click.play()
     MANAGER.save()
-    quit()
+    sys.exit()
 
 
 def menu() -> None:
@@ -357,9 +360,9 @@ def pause() -> None:
     pause_img = load_image('pause_screen.png')
 
     but_menu = Button(WIDTH // 2 - 300, HEIGHT - 300, "menu_but_0.png", "menu_but_1.png", menu)
-    but_continue = Button(WIDTH // 2 + 50, HEIGHT - 300, "continue_but_0.png", "continue_but_1.png", continue_game)
+    but_continue = Button(WIDTH // 2 + 50, HEIGHT - 300, "continue_but_0.png", "continue_but_1.png", start_game)
 
-    high_score = MANAGER.data['max_score']
+    high_score = int(MANAGER.data['max_score'])
     pg.time.set_timer(TIME_COUNT_EVENT, 0)
 
     while is_pause:
@@ -375,7 +378,7 @@ def pause() -> None:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_RETURN:
                     cursor.image = load_image("cursor.png")
-                    is_pause = False
+                    start_game()
                 if event.key == pg.K_ESCAPE:
                     menu()
 
@@ -397,6 +400,66 @@ def pause() -> None:
 
         but_menu.draw()
         but_continue.draw()
+
+        if int(SCORE) > high_score:
+            high_score = int(SCORE)
+
+        print_text(f'{int(SCORE)}', (WIDTH - 800) // 2 + 460, (HEIGHT - 700) // 2 + 165, font_size=80, font=FONTS[5])
+        print_text(f'{high_score}', (WIDTH - 800) // 2 + 460, (HEIGHT - 700) // 2 + 270, font_size=70, font=FONTS[5])
+
+        all_sprites.draw(screen)
+
+        pg.display.flip()
+        clock.tick(fps)
+
+
+def game_over() -> None:
+    global x_bkgd, rel_x_bkgd
+    is_over = True
+    cursor.image = load_image("cursor_menu.png")
+    game_over_img = load_image('game_over_screen.png')
+
+    but_menu = Button(WIDTH // 2 - 300, HEIGHT - 300, "menu_but_0.png", "menu_but_1.png", menu)
+    but_again = Button(WIDTH // 2 + 50, HEIGHT - 300, "again_but_0.png", "again_but_1.png", start_game)
+
+    high_score = int(MANAGER.data['max_score'])
+    pg.time.set_timer(TIME_COUNT_EVENT, 0)
+
+    while is_over:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                quit()
+            if pg.mouse.get_focused():
+                pg.mouse.set_visible(False)
+                cursor.rect.x, cursor.rect.y = pg.mouse.get_pos()
+                cursor.image.set_alpha(255)
+            else:
+                cursor.image.set_alpha(0)
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_RETURN:
+                    cursor.image = load_image("cursor.png")
+                    start_game()
+                if event.key == pg.K_ESCAPE:
+                    menu()
+
+        screen.fill('black')
+
+        # отрисовка фона
+        rel_x_bkgd = x_bkgd % background.get_rect().width
+        screen.blit(background, (rel_x_bkgd - background.get_rect().width, 0))
+        if rel_x_bkgd < WIDTH:
+            screen.blit(background, (rel_x_bkgd, 0))
+        x_bkgd -= 0
+        # отрисовка фона
+
+        asteroids.draw(screen)
+        player.draw(screen)
+        bullets.draw(screen)
+
+        screen.blit(game_over_img, ((WIDTH - 800) // 2, (HEIGHT - 700) // 2))
+
+        but_menu.draw()
+        but_again.draw()
 
         if int(SCORE) > high_score:
             high_score = int(SCORE)
@@ -570,10 +633,10 @@ def show_settings() -> None:
                 if event.key == pg.K_ESCAPE:
                     menu()
             if event.type == pg.MOUSEBUTTONDOWN:
-                music_minus = pg.rect.Rect(780, HEIGHT//6 - 90, 100, 100)
-                music_plus = pg.rect.Rect(WIDTH - 160, HEIGHT//6 - 90, 100, 100)
-                sound_minus = pg.rect.Rect(780, HEIGHT//6 + 110, 100, 100)
-                sound_plus = pg.rect.Rect(WIDTH - 160, HEIGHT//6 + 110, 100, 100)
+                music_minus = pg.rect.Rect(780, HEIGHT // 6 - 90, 100, 100)
+                music_plus = pg.rect.Rect(WIDTH - 160, HEIGHT // 6 - 90, 100, 100)
+                sound_minus = pg.rect.Rect(780, HEIGHT // 6 + 110, 100, 100)
+                sound_plus = pg.rect.Rect(WIDTH - 160, HEIGHT // 6 + 110, 100, 100)
                 if music_minus.collidepoint(event.pos):
                     MANAGER.data['volume_music'] -= 0.1 if MANAGER.data['volume_music'] > 0 else 0
                     pg.mixer.music.set_volume(float(MANAGER.data['volume_music']))
@@ -596,7 +659,6 @@ def show_settings() -> None:
                     sound_boom_asteroid.set_volume(float(MANAGER.data['volume_sound']))
                     sound_boom_ship.set_volume(float(MANAGER.data['volume_sound']))
                     sound_shoot.set_volume(float(MANAGER.data['volume_sound']))
-
 
         screen.fill('black')
 
@@ -717,7 +779,7 @@ def show_progress() -> None:
 
         print_text(f"BEST", 150, 100, font_size=70)
         print_text(f"SCORE", 150, 170, font_size=70)
-        print_text(f"{MANAGER.data['max_score']}", 650, 100, font_size=140)
+        print_text(f"{round(MANAGER.data['max_score'])}", 650, 100, font_size=140)
         screen.blit(trophy_img, (38, 80))
 
         print_text(f"DISTANCE", 150, 300, font_size=70)
@@ -727,7 +789,7 @@ def show_progress() -> None:
 
         print_text(f"ASTEROIDS", 150, 500, font_size=70)
         print_text(f"DESTROYED", 150, 570, font_size=70)
-        print_text(f"{MANAGER.data['2_achievement']}", 650, 500, font_size=140)
+        print_text(f"{round(MANAGER.data['2_achievement'])}", 650, 500, font_size=140)
         screen.blit(asteroid_img, (11, 510))
 
         print_text(f"TOTAL", 150, 700, font_size=70)
@@ -818,6 +880,7 @@ if __name__ == "__main__":
     fps = 100
     clock = pg.time.Clock()
     pg.display.set_caption("plads")
+    pg.display.set_icon(load_image('icon.ico'))
 
     background = pg.image.load("data/space.png").convert()
     x_bkgd = 0
