@@ -510,7 +510,7 @@ def start_game() -> None:
             if event.type == pg.QUIT:
                 running = False
             if event.type == SPAWN_ASTEROIDS_EVENT:
-                for _ in range(diff):
+                for _ in range(diff * 2):
                     Asteroid()
             if event.type == TIME_COUNT_EVENT:
                 ALL_TIME += one_second
