@@ -292,7 +292,7 @@ def get_probability_asteroid() -> int:
         return choice([1, 2, 3, 4])
 
 
-def exit_app():
+def exit_app() -> None:
     sound_click.play()
     MANAGER.save()
     sys.exit()
@@ -345,7 +345,7 @@ def menu() -> None:
         clock.tick(100)
 
 
-def continue_game():
+def continue_game() -> None:
     sound_click.play()
     global is_pause
     is_pause = False
