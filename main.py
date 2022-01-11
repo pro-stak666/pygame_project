@@ -360,7 +360,7 @@ def pause() -> None:
     pause_img = load_image('pause_screen.png')
 
     but_menu = Button(WIDTH // 2 - 300, HEIGHT - 300, "menu_but_0.png", "menu_but_1.png", menu)
-    but_continue = Button(WIDTH // 2 + 50, HEIGHT - 300, "continue_but_0.png", "continue_but_1.png", start_game)
+    but_continue = Button(WIDTH // 2 + 50, HEIGHT - 300, "continue_but_0.png", "continue_but_1.png", continue_game)
 
     high_score = int(MANAGER.data['max_score'])
     pg.time.set_timer(TIME_COUNT_EVENT, 0)
